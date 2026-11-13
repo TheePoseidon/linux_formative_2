@@ -1,6 +1,6 @@
 # Question 3: Perfect Numbers with POSIX Threads
 
-`perfect.c` searches 1 to 100,000 for perfect numbers twice:
+`perfect_num.c` searches 1 to 100,000 for perfect numbers twice:
 - **Single-threaded:** one loop from 1 to 100,000.
 - **Multi-threaded:** 8 threads, each given a `Range` struct with 12,500 numbers: 1–12500, 12501–25000, ..., 87501–100000.
 
@@ -10,7 +10,7 @@
 
 ```bash
 cd question_3
-gcc -Wall -o perfect perfect.c -pthread
+gcc -Wall -o perfect perfect_num.c -pthread
 ./perfect
 ```
 
