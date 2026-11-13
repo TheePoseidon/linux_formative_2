@@ -71,7 +71,7 @@ Error test:
 Verification:
 
 ```
-<paste grep total>
+grep total: 442312
 ```
 
 `<State whether the grep total equals the program's total.>`
