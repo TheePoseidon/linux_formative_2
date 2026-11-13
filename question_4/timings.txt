@@ -1,0 +1,12 @@
+Threads: 1, elapsed time: 0.284345 seconds
+Threads: 1, elapsed time: 0.273494 seconds
+Threads: 1, elapsed time: 0.294263 seconds
+Threads: 2, elapsed time: 0.201283 seconds
+Threads: 2, elapsed time: 0.178600 seconds
+Threads: 2, elapsed time: 0.170008 seconds
+Threads: 4, elapsed time: 0.159609 seconds
+Threads: 4, elapsed time: 0.143130 seconds
+Threads: 4, elapsed time: 0.142432 seconds
+Threads: 8, elapsed time: 0.165068 seconds
+Threads: 8, elapsed time: 0.143826 seconds
+Threads: 8, elapsed time: 0.136084 seconds

@@ -1,0 +1,13 @@
+logs/file01.log: 2153 matching lines out of 17301 (thread 3)
+logs/file03.log: 6375 matching lines out of 51544 (thread 1)
+logs/file02.log: 4302 matching lines out of 34421 (thread 2)
+logs/file05.log: 17225 matching lines out of 136539 (thread 3)
+logs/file06.log: 21146 matching lines out of 170233 (thread 1)
+logs/file04.log: 10797 matching lines out of 85779 (thread 4)
+logs/file08.log: 42153 matching lines out of 338682 (thread 3)
+logs/file09.log: 52961 matching lines out of 422895 (thread 1)
+logs/file07.log: 31818 matching lines out of 254454 (thread 2)
+logs/file10.log: 63284 matching lines out of 507128 (thread 4)
+logs/file11.log: 84564 matching lines out of 675572 (thread 3)
+logs/file12.log: 105534 matching lines out of 844011 (thread 1)
+Total matching lines across 12 files: 442312

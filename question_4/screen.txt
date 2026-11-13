@@ -1,0 +1,2 @@
+Total matching lines across 12 files: 442312
+Threads: 4, elapsed time: 0.167452 seconds
