@@ -57,7 +57,8 @@ Error test output:
 Checksums:
 
 ```
-<paste output of sha256sum big.bin out.bin>
+a010947919442458d644554eb3af5fb55e0b085d9ae7cc4eb24e83514ee9ab66  big.bin
+a010947919442458d644554eb3af5fb55e0b085d9ae7cc4eb24e83514ee9ab66  out.bin
 ```
 
 ## Results
