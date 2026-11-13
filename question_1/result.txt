@@ -1,5 +1,0 @@
-/bin/bash
-/bin/false
-/bin/sync
-/usr/bin/zsh
-/usr/sbin/nologin
