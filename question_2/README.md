@@ -27,34 +27,30 @@ Error test:
 ./copy_stdio missing.bin out.bin 4096
 ```
 
-Run every experiment (3 runs per buffer size, each copy verified):
+Experiment (3 runs per buffer size, each copy verified):
 
 ```bash
 for prog in copy_sys copy_stdio; do for size in 512 4096 65536; do for run in 1 2 3; do ./$prog big.bin out.bin $size; cmp big.bin out.bin && echo "  cmp OK"; done; done; done
 ```
 
-Count system calls:
+Count system calls (results saved in `strace_<program>_<size>.txt`):
 
 ```bash
-strace -c ./copy_sys big.bin out.bin 512
-strace -c ./copy_sys big.bin out.bin 4096
-strace -c ./copy_sys big.bin out.bin 65536
-strace -c ./copy_stdio big.bin out.bin 512
-strace -c ./copy_stdio big.bin out.bin 4096
-strace -c ./copy_stdio big.bin out.bin 65536
+for prog in copy_sys copy_stdio; do for size in 512 4096 65536; do strace -c -o strace_${prog}_${size}.txt ./$prog big.bin out.bin $size; done; done
 ```
 
-Do not commit `big.bin`. It is 100 MiB, which is at GitHub's file size limit.
+Do not commit `big.bin` or `out.bin` (100 MiB each).
 
 ## Verification
 
-Error test output:
+Error test:
 
 ```
-<paste output of the error test>
+missing.bin: No such file or directory
+missing.bin: No such file or directory
 ```
 
-Checksums:
+All 18 timed copies printed `cmp OK`. Checksums:
 
 ```
 a010947919442458d644554eb3af5fb55e0b085d9ae7cc4eb24e83514ee9ab66  big.bin
@@ -63,77 +59,75 @@ a010947919442458d644554eb3af5fb55e0b085d9ae7cc4eb24e83514ee9ab66  out.bin
 
 ## Results
 
-### Elapsed Time (program's own timing, 3 runs)
+### Elapsed Time (3 runs)
 
 | Version | Buffer | Run 1 (s) | Run 2 (s) | Run 3 (s) | Average (s) |
 |---------|--------|-----------|-----------|-----------|-------------|
-| copy_sys | 512 B | | | | |
-| copy_sys | 4 KB | | | | |
-| copy_sys | 64 KB | | | | |
-| copy_stdio | 512 B | | | | |
-| copy_stdio | 4 KB | | | | |
-| copy_stdio | 64 KB | | | | |
+| copy_sys | 512 B | 1.872 | 1.455 | 1.805 | **1.711** |
+| copy_sys | 4 KB | 0.511 | 0.490 | 0.488 | **0.497** |
+| copy_sys | 64 KB | 0.242 | 0.245 | 0.176 | **0.221** |
+| copy_stdio | 512 B | 0.483 | 0.489 | 0.539 | **0.504** |
+| copy_stdio | 4 KB | 0.477 | 0.444 | 0.494 | **0.472** |
+| copy_stdio | 64 KB | 0.288 | 0.275 | 0.288 | **0.284** |
 
-### System Call Counts (`strace -c`)
+### System Calls (`strace -c`) and Times
 
-| Version | Buffer | read calls | read s | read % | write calls | write s | write % | Avg time (s) | Time under strace (s) |
-|---------|--------|-----------|--------|--------|-------------|---------|---------|--------------|------------------------|
-| copy_sys | 512 B | | | | | | | | |
-| copy_sys | 4 KB | | | | | | | | |
-| copy_sys | 64 KB | | | | | | | | |
-| copy_stdio | 512 B | | | | | | | | |
-| copy_stdio | 4 KB | | | | | | | | |
-| copy_stdio | 64 KB | | | | | | | | |
+| Version | Buffer | read calls | read s | read % | write calls | write s | write % | Avg time (s) | Under strace (s) |
+|---------|--------|-----------:|-------:|-------:|------------:|--------:|--------:|-------------:|-----------------:|
+| copy_sys | 512 B | 204,802 | 0.871 | 31.45 | 204,801 | 1.837 | 66.37 | 1.711 | 14.734 |
+| copy_sys | 4 KB | 25,602 | 0.125 | 23.00 | 25,601 | 0.318 | 58.48 | 0.497 | 2.405 |
+| copy_sys | 64 KB | 1,602 | 0.018 | 19.01 | 1,601 | 0.040 | 42.35 | 0.221 | 0.285 |
+| copy_stdio | 512 B | 25,602 | 0.116 | 23.54 | 25,601 | 0.289 | 58.86 | 0.504 | 2.408 |
+| copy_stdio | 4 KB | 25,602 | 0.114 | 21.94 | 25,601 | 0.297 | 57.22 | 0.472 | 2.316 |
+| copy_stdio | 64 KB | 1,602 | 0.021 | 12.38 | 3,200 | 0.088 | 48.70 | 0.284 | 0.666 |
 
-Expected counts, to check your numbers against:
-- `copy_sys` makes 100 MB / buffer size data reads and writes. That is 204,800 at 512 B, 25,600 at 4 KB and 1,600 at 64 KB. There are a few extra calls: 1 read that returns 0 (EOF), 1 read by the loader to load libc, and 1 write for the `printf` of the time.
-- `copy_stdio` at 512 B should show about the same counts as `copy_sys` at 4 KB, because stdio's buffer is 4096 bytes.
+- 100 MB / 512 B = 204,800 data reads and writes.
+- The extra read calls are 1 EOF read (returns 0) and 1 read by the loader of libc. The extra write call is the `printf`.
+- At 64 KB, read + write show a lower % because `openat` takes up to 29% of the time. Opening the existing 100 MB `out.bin` with `O_TRUNC` has to free its blocks.
 
-### Comparison of read/write in Both Versions
+### Comparison
 
-- **512 B:** `<copy_sys calls/seconds/% vs copy_stdio calls/seconds/%; how many times faster stdio is>`
-- **4 KB:** `<compare>`
-- **64 KB:** `<compare>`
+- **512 B:** `copy_stdio` makes **8× fewer** calls (25,602 vs 204,802 reads). Kernel time in read+write drops from 2.71 s to 0.41 s, and the copy is **3.4× faster** (0.504 s vs 1.711 s).
+- **4 KB:** both make the **same** number of calls (25,602 / 25,601), with similar seconds and %. The times are almost equal (0.472 s vs 0.497 s).
+- **64 KB:** both make 1,602 reads, but `copy_stdio` makes 3,200 writes (2 per block). `copy_sys` is now slightly faster (0.221 s vs 0.284 s).
 
-### Note: strace Slows Programs Down
+### strace Slows Programs Down
 
-strace stops the program at every system call so it can record it. This adds a large cost to each call, so the times under strace are much higher than the program's own times. For example, `copy_sys` with 512 B takes `<avg>` s normally but `<strace time>` s under strace. The slowdown is worst where there are the most calls. So strace is used to **count** calls, and the program's own `clock_gettime()` timing is used to **compare speed**.
+strace stops the program at every system call to record it, so times under strace are much higher. For example, `copy_sys` at 512 B takes 1.711 s normally and **14.734 s** under strace, about 9× slower. The slowdown grows with the number of calls. So strace is used only to **count** calls, and `clock_gettime()` is used to **compare speed**.
 
 ## Explanation
 
 ### 1. How fread()/fwrite() Buffering Reduces read()/write() Calls
 
-- `FILE *` keeps its own buffer in user space, usually 4096 bytes (the file system block size, see `stat -c %o big.bin`).
-- `fread(buf, 1, 512, in)`: the first call does one `read(fd, stdio_buf, 4096)`. The next 7 calls copy from that buffer with `memcpy`, without entering the kernel. So there is 1 `read()` for every 8 `fread()` calls.
-- `fwrite(buf, 1, 512, out)` copies into the stdio buffer. Only when 4096 bytes have built up does it call `write()`. `fclose()` flushes the rest.
-- So `copy_stdio` at 512 B makes about the same number of calls as `copy_sys` at 4 KB.
-- When the request is the buffer size or larger (64 KB), glibc skips its buffer and reads or writes directly from the user's buffer. The write count can be up to double the read count, because `fwrite` may first flush a 4 KB piece and then write the rest of the block directly. You can see this with `strace -e trace=write ./copy_stdio big.bin out.bin 65536`.
+- Each `FILE *` has its own 4096-byte buffer in user space.
+- `fread(buf, 1, 512, in)` fills that buffer with **one** `read(fd, ..., 4096)`. The next 7 `fread` calls are served from the buffer by `memcpy`, without a system call.
+- `fwrite()` copies into the buffer and calls `write()` only when 4096 bytes have built up. `fclose()` flushes the rest.
+- So `copy_stdio` at 512 B makes the same 25,601 calls as `copy_sys` at 4 KB.
+- For requests of 4096 bytes or more, glibc skips its buffer. At 64 KB, `fread` reads directly (1,602 reads). `fwrite` writes one 4096-byte piece and then the remaining 61,440 bytes, which is why there are 3,200 writes.
 
 ### 2. Why Each System Call Adds Overhead
 
-A library call like `fread()` is an ordinary function call in user mode. A system call like `read()` must enter the kernel:
+`fread()` is a normal function call in **user mode**. `read()` must enter the **kernel**:
 
-1. The program runs the `syscall` instruction. The CPU switches from **user mode** (ring 3) to **kernel mode** (ring 0).
-2. The kernel saves the program's registers, checks the arguments (valid fd, valid buffer address) and finds the file.
+1. The `syscall` instruction switches the CPU from user mode to **kernel mode**.
+2. The kernel saves the registers and checks the arguments (fd, buffer address).
 3. The kernel copies the data between the page cache and the user buffer.
 4. The kernel restores the registers and switches back to user mode.
 
-Steps 1, 2 and 4 cost the same whether you move 512 bytes or 64 KB. Security protections against Spectre and Meltdown make each switch even more expensive, and each switch also disturbs the CPU caches. With 512 B, `copy_sys` pays this fixed cost about 409,600 times, which is why it should be the slowest case.
+Steps 1, 2 and 4 are a **fixed cost per call**, whether 512 bytes or 64 KB are moved. Security protections (Spectre/Meltdown mitigations) make each switch more expensive. `copy_sys` at 512 B pays this cost about 409,600 times, so it is the slowest (1.711 s).
 
 ### 3. Why the Performance Gap Shrinks as the Buffer Grows
 
-Total time is roughly:
-
 ```
-time = (number of system calls x fixed cost per call) + (bytes copied x copy cost)
+time ≈ (number of system calls × fixed cost per call) + (100 MB × copy cost)
 ```
 
-- The second part is the same for both versions, because both move 100 MB.
-- With a small buffer the first part dominates. stdio wins because it turns 8 small requests into 1 system call.
-- As the buffer grows, `copy_sys` makes fewer calls (about 409,600, then 51,200, then 3,200). The fixed cost becomes small, so both versions spend most of their time just copying data.
-- At 4 KB, stdio's buffer is no bigger than the user's buffer, so it saves no calls and only adds an extra `memcpy`.
-- At 64 KB, stdio skips its buffer, so both versions behave almost the same.
+- The copy cost is the same for both versions.
+- **Small buffer:** the call cost dominates. stdio saves 7 of every 8 calls, so it is 3.4× faster.
+- **Larger buffer:** `copy_sys` itself makes far fewer calls (409,603, then 51,203, then 3,203). There is little left for stdio to save, and the extra `memcpy` into its own buffer costs time.
+- **4 KB:** equal calls, so equal speed.
+- **64 KB:** stdio makes extra writes, so `copy_sys` is slightly faster.
 
-The benefit of stdio buffering is that it removes system calls. Once the program's own buffer is large, there are few system calls left to remove, so the gap disappears.
+Once the program's own buffer is large, the system call overhead is small, so buffering no longer helps and the gap disappears.
 
-Note: `big.bin` is usually in the page cache (RAM) after `dd`, so the times mostly show system call and copy cost, not disk speed.
+Note: `big.bin` was in the page cache (RAM), so these times show system call and copy cost, not disk speed.
